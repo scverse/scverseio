@@ -127,8 +127,10 @@ to_Seurat <- function(
   # trackstatus: class=Seurat, feature=get_obs, status=done
   # trackstatus: class=Seurat, feature=get_X, status=done
   # trackstatus: class=Seurat, feature=get_layers, status=done
-  counts <- .to_seurat_get_matrix_by_key(adata, layers_mapping, "counts")
-  data <- .to_seurat_get_matrix_by_key(adata, layers_mapping, "data")
+  # TODO: convert to dgCMatrix if needed
+  counts <- to_column_major_matrix(.to_seurat_get_matrix_by_key(adata, layers_mapping, "counts"))
+  # TODO: convert to dgCMatrix if needed
+  data <- to_column_major_matrix(.to_seurat_get_matrix_by_key(adata, layers_mapping, "data"))
   if (!is.null(counts)) {
     dimnames(counts) <- list(adata$var_names, adata$obs_names)
   }
@@ -158,7 +160,8 @@ to_Seurat <- function(
 
   # copy other layers
   for (i in seq_along(layers_mapping)) {
-    from <- layers_mapping[[i]]
+    from <- to_column_major_matrix(layers_mapping[[i]])
+    # TODO: convert to dgCMatrix if needed
     to <- names(layers_mapping)[[i]]
     if (!to %in% c("counts", "data")) {
       SeuratObject::LayerData(obj, assay = assay_name, layer = to) <- adata$layers[[from]]
@@ -186,8 +189,8 @@ to_Seurat <- function(
       dr <- .to_seurat_process_reduction(
         adata = adata,
         key = reduction$key,
-        obsm_embedding = reduction$obsm,
-        varm_loadings = reduction$varm,
+        obsm_embedding = reduction$obsm, # TODO: convert to dgCMatrix if needed
+        varm_loadings = reduction$varm,  # TODO: convert to dgCMatrix if needed
         assay_name = assay_name
       )
       if (!is.null(dr)) {
@@ -203,7 +206,7 @@ to_Seurat <- function(
     if (!is.character(graph) || length(graph) != 1) {
       stop("item ", graph_name, " in graph_mapping is not a character vector of length 1")
     }
-    obsp <- adata$obsp[[graph]]
+    obsp <- to_column_major_matrix(adata$obsp[[graph]]) # TODO: convert to dgCMatrix if needed
     if (!is.null(obsp)) {
       dimnames(obsp) <- list(obs_names, obs_names)
       obsp_gr <- Seurat::as.Graph(obsp)
@@ -233,7 +236,7 @@ to_Seurat <- function(
       if (!misc_key %in% names(misc_data)) {
         stop(paste0("misc_mapping: adata$", misc_slot, "[[", misc_key, "]] does not exist"))
       }
-      misc_data <- misc_data[[misc_key]]
+      misc_data <- to_column_major_matrix(misc_data[[misc_key]])   # TODO: convert to dgCMatrix if needed
     }
     if (!is.null(misc_data)) {
       SeuratObject::Misc(obj, misc_name) <- misc_data
@@ -295,7 +298,7 @@ to_Seurat <- function(
   if (!is.null(varm_loadings) && !.to_seurat_is_atomic_character(varm_loadings)) {
     stop("varm_loadings must be a character scalar or NULL")
   }
-  embed <- adata$obsm[[obsm_embedding]]
+  embed <- to_column_major_matrix(adata$obsm[[obsm_embedding]])
 
   if (is.null(embed)) {
     stop(paste0("The reduction ", obsm_embedding, " is not present in adata$obsm"))
@@ -309,7 +312,7 @@ to_Seurat <- function(
     } else if (!varm_loadings %in% names(adata$varm)) {
       stop(paste0("The loadings ", varm_loadings, " is not present in adata$varm"))
     } else {
-      load <- adata$varm[[varm_loadings]]
+      load <- to_column_major_matrix(adata$varm[[varm_loadings]])
       rownames(load) <- adata$var_names
       load
     }

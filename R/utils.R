@@ -54,3 +54,10 @@ get_initial_var <- function(var, X, shape) {
   }
   var
 }
+
+to_column_major_matrix <- function(matrix){
+  if(inherits(matrix, "dgRMatrix")){
+    as(matrix, "CsparseMatrix")
+  }
+  matrix
+}
